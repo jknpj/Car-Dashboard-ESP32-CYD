@@ -4,7 +4,9 @@
 
 #include "../../config/app_config.h"
 #include "../../core/i18n.h"
+#if APP_ENABLE_HA
 #include "../../core/ha_export.h"
+#endif
 #include "../../core/platform.h"
 #include "../../core/settings.h"
 #include "../../core/units.h"
@@ -192,10 +194,12 @@ void on_data_source(lv_event_t* e) {
   edit().demo_mode = selected_segment(e) == 0;
   commit(chg::kChangeDataSource);
 }
+#if APP_ENABLE_HA
 void on_ha_toggle(lv_event_t* e) {
   edit().ha_enabled = switch_on(e);
   commit(chg::kChangeHa);
 }
+#endif
 void on_rail_toggle(lv_event_t* e) {
   edit().hide_nav_rail = switch_on(e);
   commit(chg::kChangeNavRail);
@@ -399,6 +403,7 @@ void SettingsPage::update_live_values(uint32_t now_ms) {
     set_text(link_status_, link_state_text(state));
     set_text_color(link_status_, state == core::LinkState::Connected ? color::ok() : color::text_dim());
   }
+#if APP_ENABLE_HA
   if (ha_status_ != nullptr) {
     const core::HaExport* ha = core::ha::active();
     if (!get().ha_enabled) {
@@ -415,6 +420,7 @@ void SettingsPage::update_live_values(uint32_t now_ms) {
       set_text_color(ha_status_, color::text_dim());
     }
   }
+#endif
   if (memory_label_ != nullptr) {
     platform::SystemInfo info;
     platform::system_info(info);
@@ -552,10 +558,12 @@ void SettingsPage::build_connection(lv_obj_t* list) {
   }
   rows::note(list, core::tr(core::Str::SET_DEMO_HINT));
 
+#if APP_ENABLE_HA
   rows::toggle(list, ICON_HISTORY, core::tr(core::Str::SET_HA), core::tr(core::Str::SET_HA_SUB), get().ha_enabled,
                on_ha_toggle, nullptr);
   ha_status_ = rows::info(list, ICON_LINK_OFF, core::tr(core::Str::SET_HA_STATUS), "");
   rows::note(list, core::tr(core::Str::SET_HA_HINT));
+#endif
 }
 
 void SettingsPage::build_system(lv_obj_t* list) {

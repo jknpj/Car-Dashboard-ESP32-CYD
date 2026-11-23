@@ -30,3 +30,12 @@
 
 // ---- ELM327 Bluetooth (SPP) -----------------------------------------------------------------
 #define ELM_BT_PIN "1234"  // legacy pairing PIN of the ELM327 clone ("1234" or "0000")
+
+// ---- Home Assistant upload ------------------------------------------------------------------
+// 0 = the WiFi/HTTPS upload is compiled out entirely: the WiFi radio is never
+//     started, the serial CLI and the settings rows disappear, and the HA
+//     sources are excluded from the build (see build_src_filter in platformio.ini).
+// Set to 1 and drop the two HA exclusions from build_src_filter to bring it back.
+#ifndef APP_ENABLE_HA
+#define APP_ENABLE_HA 0
+#endif

@@ -8,8 +8,10 @@
 #include "../core/alerts.h"
 #include "../core/data_link.h"
 #include "../core/elm_link.h"
-#include "../core/ha_export.h"
 #include "../core/i18n.h"
+#if APP_ENABLE_HA
+#include "../core/ha_export.h"
+#endif
 #include "../core/log.h"
 #include "../core/persist.h"
 #include "../core/platform.h"
@@ -21,7 +23,9 @@
 #include "../hal/backlight.h"
 #include "../hal/bt_spp.h"
 #include "../hal/button.h"
+#if APP_ENABLE_HA
 #include "../hal/ha_http.h"
+#endif
 #include "../hal/buzzer.h"
 #include "../hal/display.h"
 #include "../hal/light_sensor.h"
@@ -47,8 +51,10 @@ core::SimLink g_sim_link;
 core::NullLink g_null_link;
 hal::BtSppTransport g_bt_spp;
 core::ElmLink g_elm_link(g_bt_spp);
+#if APP_ENABLE_HA
 hal::HaHttp g_ha_http;
 core::HaExport g_ha_export(g_ha_http);
+#endif
 
 uint32_t g_last_backlight_ms = 0;
 uint32_t g_last_trip_save_ms = 0;
@@ -82,6 +88,7 @@ void on_bt_mac_found(const char* mac) {
   LOG_I("APP", "adapter MAC stored: %s", mac);
 }
 
+#if APP_ENABLE_HA
 void apply_ha_settings() {
   const core::Settings& s = core::settings::get();
   const bool enabled = s.ha_enabled && s.ha_url[0] != '\0' && s.ha_token[0] != '\0' && s.wifi_ssid[0] != '\0';
@@ -156,6 +163,7 @@ void serial_cli() {
     }
   }
 }
+#endif  // APP_ENABLE_HA
 
 uint8_t target_brightness() {
   const core::Settings& s = core::settings::get();
@@ -258,7 +266,9 @@ void on_settings_changed(uint32_t changes, void*) {
   if (changes & core::settings::kChangeOrientation) hal::display::set_flipped(s.flip_screen);
   if (changes & core::settings::kChangeSound) hal::buzzer::set_volume(s.volume);
   if (changes & core::settings::kChangeDataSource) select_data_source(millis());
+#if APP_ENABLE_HA
   if (changes & core::settings::kChangeHa) apply_ha_settings();
+#endif
 }
 
 /** Renders the splash while the start-up continues. */
@@ -294,8 +304,10 @@ void setup() {
   const core::Settings& s = core::settings::get();
   g_bt_spp.set_mac(s.bt_mac);
   g_bt_spp.set_mac_found_callback(on_bt_mac_found);
+#if APP_ENABLE_HA
   core::ha::set_active(&g_ha_export);
   apply_ha_settings();
+#endif
 
   // ---- Graphics -----------------------------------------------------------------------
   lv_init();
@@ -362,8 +374,10 @@ void loop() {
     save_trip(false);
   }
 
+#if APP_ENABLE_HA
   serial_cli();
   update_ha(now);
+#endif
 
   const uint32_t idle_ms = lv_timer_handler();
   delay(idle_ms > 5 ? 5 : (idle_ms == 0 ? 1 : idle_ms));
