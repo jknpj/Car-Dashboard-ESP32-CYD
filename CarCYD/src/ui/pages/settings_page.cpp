@@ -518,6 +518,10 @@ void SettingsPage::build_connection(lv_obj_t* list) {
   rows::segmented(list, ICON_DATABASE, core::tr(core::Str::SET_DATA_SOURCE), g_sources, get().demo_mode ? 0 : 1,
                   on_data_source, nullptr);
   link_status_ = rows::info(list, ICON_LINK, core::tr(core::Str::SET_LINK_STATUS), "");
+  if (!get().demo_mode) {
+    rows::info(list, ICON_LINK, core::tr(core::Str::SET_ELM),
+               get().bt_mac[0] ? get().bt_mac : core::tr(core::Str::SET_ELM_SCAN));
+  }
   rows::note(list, core::tr(core::Str::SET_DEMO_HINT));
 }
 

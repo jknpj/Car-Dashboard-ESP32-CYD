@@ -60,9 +60,11 @@ struct Settings {
   uint8_t dash_view;
   SignalId corner_slots[kCornerSlots];
   SignalId gauge_slots[kGaugeSlots];
+  // ELM327 over Bluetooth Classic (SPP)
+  char bt_mac[18];  ///< "AA:BB:CC:DD:EE:FF" of the adapter; empty = scan on connect
 };
 
-constexpr uint16_t kSettingsVersion = 1;
+constexpr uint16_t kSettingsVersion = 2;
 
 namespace settings {
 

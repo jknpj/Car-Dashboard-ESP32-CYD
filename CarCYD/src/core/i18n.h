@@ -182,6 +182,8 @@
   X(SET_DATA_SOURCE,      "Data source",                    "Veri kaynağı") \
   X(SET_SRC_DEMO,         "Demo",                           "Demo") \
   X(SET_SRC_LINK,         "ESP32 link",                     "ESP32 bağlantısı") \
+  X(SET_ELM,              "ELM327",                         "ELM327") \
+  X(SET_ELM_SCAN,         "Searching…",                     "Aranıyor…") \
   X(SET_LINK_STATUS,      "Status",                         "Durum") \
   X(SET_LINK_INTERFACE,   "Interface",                      "Arayüz") \
   X(SET_DEMO_HINT,        "Demo mode simulates a driving car. Select ESP32 link to use real vehicle data.", "Demo modu sürüşü simüle eder. Gerçek araç verisi için ESP32 bağlantısını seçin.") \

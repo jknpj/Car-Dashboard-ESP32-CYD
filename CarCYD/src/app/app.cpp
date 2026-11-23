@@ -7,6 +7,7 @@
 #include "../config/board_config.h"
 #include "../core/alerts.h"
 #include "../core/data_link.h"
+#include "../core/elm_link.h"
 #include "../core/i18n.h"
 #include "../core/log.h"
 #include "../core/persist.h"
@@ -17,6 +18,7 @@
 #include "../core/util.h"
 #include "../core/vehicle_state.h"
 #include "../hal/backlight.h"
+#include "../hal/bt_spp.h"
 #include "../hal/button.h"
 #include "../hal/buzzer.h"
 #include "../hal/display.h"
@@ -41,6 +43,8 @@ constexpr const char* kNvsNamespace = "carcyd";
 hal::NvsStorage g_storage;
 core::SimLink g_sim_link;
 core::NullLink g_null_link;
+hal::BtSppTransport g_bt_spp;
+core::ElmLink g_elm_link(g_bt_spp);
 
 uint32_t g_last_backlight_ms = 0;
 uint32_t g_last_trip_save_ms = 0;
@@ -58,11 +62,20 @@ void lvgl_log_cb(lv_log_level_t, const char* text) { Serial.print(text); }
 // ---- Services ------------------------------------------------------------------------------
 
 void select_data_source(uint32_t now_ms) {
-  core::DataLink* link = core::settings::get().demo_mode ? static_cast<core::DataLink*>(&g_sim_link)
-                                                         : static_cast<core::DataLink*>(&g_null_link);
+  const core::Settings& s = core::settings::get();
+  g_bt_spp.set_mac(s.bt_mac);
+  core::DataLink* link = s.demo_mode ? static_cast<core::DataLink*>(&g_sim_link)
+                                     : static_cast<core::DataLink*>(&g_elm_link);
   core::link::set_active(link, now_ms);
   core::alerts().reset();
-  for (auto& s : g_sounded) s = core::Severity::Normal;
+  for (auto& snd : g_sounded) snd = core::Severity::Normal;
+}
+
+void on_bt_mac_found(const char* mac) {
+  core::Settings& s = core::settings::edit();
+  snprintf(s.bt_mac, sizeof(s.bt_mac), "%s", mac);
+  core::settings::commit(core::settings::kChangeDataSource);  // persists, harmless while active
+  LOG_I("APP", "adapter MAC stored: %s", mac);
 }
 
 uint8_t target_brightness() {
@@ -109,6 +122,7 @@ void update_status_led(uint32_t now_ms) {
 }
 
 void update_alert_sounds(uint32_t now_ms) {
+  if (ui::calibrating()) return;  // stay quiet while the user calibrates the touch
   core::AlertManager& alerts = core::alerts();
   bool critical_pending = false;
   for (uint8_t i = 0; i < core::kAlertCount; ++i) {
@@ -198,6 +212,8 @@ void setup() {
   g_storage.begin(kNvsNamespace);
   core::settings::load(g_storage);
   const core::Settings& s = core::settings::get();
+  g_bt_spp.set_mac(s.bt_mac);
+  g_bt_spp.set_mac_found_callback(on_bt_mac_found);
 
   // ---- Graphics -----------------------------------------------------------------------
   lv_init();
