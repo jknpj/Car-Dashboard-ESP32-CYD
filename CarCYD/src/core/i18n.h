@@ -186,6 +186,7 @@
   X(SET_SRC_LINK,         "ESP32 link",                     "ESP32 bağlantısı") \
   X(SET_ELM,              "ELM327",                         "ELM327") \
   X(SET_ELM_SCAN,         "Searching…",                     "Aranıyor…") \
+  X(SET_BT_LOG_HINT,      "Adapter events, minutes:seconds since boot", "Adaptör olayları, açılıştan dakika:saniye") \
   X(SET_HA,               "Home Assistant",                 "Home Assistant") \
   X(SET_HA_SUB,           "Upload fuel, tyres, battery and alerts over Wi-Fi", "Yakıt, lastik, akü ve uyarıları Wi-Fi ile yükle") \
   X(SET_HA_STATUS,        "HA status",                      "HA durumu") \

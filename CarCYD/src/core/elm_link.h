@@ -72,7 +72,7 @@ class ElmLink final : public DataLink {
   void on_timeout(VehicleState& state, uint32_t now_ms);
   void apply_pid(VehicleState& state, uint32_t now_ms);
   void update_gear(VehicleState& state, uint32_t now_ms);
-  void fail_link(VehicleState& state);
+  void fail_link(VehicleState& state, uint32_t now_ms);
   void send_next_pid(uint32_t now_ms);
 
   ElmTransport& transport_;

@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "dtc.h"
+#include "link_log.h"
 #include "log.h"
 #include "signals.h"
 #include "util.h"
@@ -139,13 +140,14 @@ void ElmLink::end(VehicleState& state) {
   LOG_I("ELM", "link stopped");
 }
 
-void ElmLink::fail_link(VehicleState& state) {
+void ElmLink::fail_link(VehicleState& state, uint32_t now_ms) {
   waiting_ = false;
   rx_len_ = 0;
   errors_ = 0;
   state.link_state = LinkState::Error;
   transport_.reset();
   phase_ = Phase::Connecting;
+  link_log::add(link_log::Code::ElmFail, now_ms);
   LOG_W("ELM", "protocol errors, reconnecting");
 }
 
@@ -232,6 +234,7 @@ void ElmLink::on_response(VehicleState& state, uint32_t now_ms) {
         errors_ = 0;
         state.link_state = LinkState::Connected;
         LOG_I("ELM", "ready");
+        link_log::add(link_log::Code::ElmReady, now_ms);
         next_tx_ms_ = now_ms + kMinGapMs;
       }
       break;
@@ -261,7 +264,7 @@ void ElmLink::on_response(VehicleState& state, uint32_t now_ms) {
         // "NO DATA" etc.: leave the signal to go stale, keep polling.
       } else {
         LOG_W("ELM", "unexpected response '%.32s'", rx_);
-        if (++errors_ >= kMaxConsecutiveErrors) fail_link(state);
+        if (++errors_ >= kMaxConsecutiveErrors) fail_link(state, now_ms);
       }
       update_gear(state, now_ms);
       break;
@@ -347,14 +350,14 @@ void ElmLink::on_timeout(VehicleState& state, uint32_t now_ms) {
     case Phase::AtInit:
       // Retry the same AT command once, then give up on the adapter.
       if (++errors_ >= kMaxConsecutiveErrors) {
-        fail_link(state);
+        fail_link(state, now_ms);
       } else {
         send(kAtSequence[at_step_], now_ms);
       }
       break;
 
     case Phase::Ready:
-      if (++errors_ >= kMaxConsecutiveErrors) fail_link(state);
+      if (++errors_ >= kMaxConsecutiveErrors) fail_link(state, now_ms);
       break;
 
     case Phase::DtcRead: {

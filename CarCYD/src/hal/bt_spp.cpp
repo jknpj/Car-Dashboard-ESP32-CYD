@@ -11,6 +11,7 @@
 #include <string>
 
 #include "../config/app_config.h"
+#include "../core/link_log.h"
 #include "../core/log.h"
 #include "../core/util.h"
 
@@ -59,6 +60,14 @@ bool is_generic_class(uint32_t cod) {
   return major == 0x00 || major == 0x1F;
 }
 
+/** Context for the event log: the adapter name, or the tail of the MAC. */
+const char* short_ctx(const char* name, const char* mac) {
+  if (name != nullptr && name[0] != '\0') return name;
+  if (mac == nullptr) return "-";
+  const size_t n = strlen(mac);
+  return n >= 8 ? mac + n - 8 : mac;
+}
+
 }  // namespace
 
 BtSppTransport* BtSppTransport::g_this = nullptr;
@@ -90,12 +99,14 @@ bool BtSppTransport::start_bt() {
   g_this = this;
   bt_started_ = bt_.begin(kLocalName, /*master=*/true, /*disableBLE=*/true);
   if (!bt_started_) {
+    core::link_log::add(core::link_log::Code::BtFail, now);
     LOG_E("BT", "Bluetooth Classic init failed, retrying in %lu ms",
           static_cast<unsigned long>(kBtRetryMs));
     return false;
   }
   // setPin() talks to the GAP layer, so it only works once the stack is up.
   bt_.setPin(ELM_BT_PIN, static_cast<uint8_t>(strlen(ELM_BT_PIN)));
+  core::link_log::add(core::link_log::Code::BtStart, now);
   LOG_I("BT", "SPP started as '%s'", kLocalName);
   return true;
 }
@@ -138,13 +149,17 @@ void BtSppTransport::try_connect() {
   stop_scan();
   bt_.disconnect();
   LOG_I("BT", "connecting to %s", mac_);
+  core::link_log::add(core::link_log::Code::ConnectTry, millis(), short_ctx(last_name_, mac_));
   if (!bt_.connect(addr)) {
     // connect() blocks for up to 10 s, so count the failures and give up on a
     // stale/unreachable address instead of retrying it forever.
     LOG_W("BT", "connect(%s) failed", mac_);
+    core::link_log::add(core::link_log::Code::ConnectFail, millis(), short_ctx(last_name_, mac_));
     if (++connect_failures_ >= kMaxConnectFailures) {
       LOG_W("BT", "adapter unreachable, forgetting %s and scanning again", mac_);
+      core::link_log::add(core::link_log::Code::Forget, millis(), short_ctx(last_name_, mac_));
       mac_[0] = '\0';
+      last_name_[0] = '\0';
       connect_failures_ = 0;
       mode_ = Mode::Scanning;
       attempt_at_ms_ = millis();
@@ -175,6 +190,7 @@ void BtSppTransport::on_device(BTAdvertisedDevice* dev) {
   if (!name_matches(named ? name.c_str() : "")) return;
 
   snprintf(mac_, sizeof(mac_), "%s", addr.c_str());
+  snprintf(last_name_, sizeof(last_name_), "%s", named ? name.c_str() : "");
   candidate_seen_ = false;
   empty_windows_ = 0;
   connect_failures_ = 0;
@@ -201,6 +217,7 @@ void BtSppTransport::service() {
   if (mac_pending_) {  // deliver the discovery result from the loop context
     mac_pending_ = false;
     stop_scan();
+    core::link_log::add(core::link_log::Code::Found, now, last_name_);
     if (mac_found_ != nullptr) mac_found_(mac_);
   }
 
@@ -219,7 +236,9 @@ void BtSppTransport::service() {
           if (empty_windows_ < 0xFF) ++empty_windows_;
           if (empty_windows_ >= kFallbackWindows && candidate_seen_) {
             snprintf(mac_, sizeof(mac_), "%s", candidate_mac_);
+            last_name_[0] = '\0';
             LOG_W("BT", "no adapter name matched, trying strongest candidate %s", mac_);
+            core::link_log::add(core::link_log::Code::Fallback, now, short_ctx(nullptr, mac_));
             connect_now_ = true;
             mode_ = Mode::Connecting;
           }
@@ -236,6 +255,7 @@ void BtSppTransport::service() {
         connect_failures_ = 0;
         empty_windows_ = 0;
         candidate_seen_ = false;
+        core::link_log::add(core::link_log::Code::ConnectOk, now, short_ctx(last_name_, mac_));
         LOG_I("BT", "connected to %s", mac_);
       } else if (connect_now_ || core::elapsed(now, attempt_at_ms_) >= kConnectTimeoutMs) {
         connect_now_ = false;
@@ -247,6 +267,7 @@ void BtSppTransport::service() {
     case Mode::Online:
       if (!bt_.connected()) {
         LOG_W("BT", "link dropped");
+        core::link_log::add(core::link_log::Code::Drop, now, short_ctx(last_name_, mac_));
         mode_ = mac_[0] != '\0' ? Mode::Connecting : Mode::Scanning;
         attempt_at_ms_ = now;
         connect_now_ = mac_[0] != '\0';

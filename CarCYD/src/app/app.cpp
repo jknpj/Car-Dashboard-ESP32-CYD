@@ -12,6 +12,7 @@
 #if APP_ENABLE_HA
 #include "../core/ha_export.h"
 #endif
+#include "../core/link_log.h"
 #include "../core/log.h"
 #include "../core/persist.h"
 #include "../core/platform.h"
@@ -300,6 +301,8 @@ void setup() {
 
   // Settings first: they define orientation, language and brightness.
   g_storage.begin(kNvsNamespace);
+  core::link_log::begin(g_storage);
+  core::link_log::add(core::link_log::Code::Boot, millis());
   core::settings::load(g_storage);
   const core::Settings& s = core::settings::get();
   g_bt_spp.set_mac(s.bt_mac);
@@ -369,6 +372,7 @@ void loop() {
   hal::rgb_led::update(now);
 
   core::settings::service(now);
+  core::link_log::service(now);
   if (core::elapsed(now, g_last_trip_save_ms) >= APP_TRIP_SAVE_PERIOD_MS) {
     g_last_trip_save_ms = now;
     save_trip(false);

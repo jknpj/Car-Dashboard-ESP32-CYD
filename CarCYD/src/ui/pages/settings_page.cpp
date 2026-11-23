@@ -7,6 +7,7 @@
 #if APP_ENABLE_HA
 #include "../../core/ha_export.h"
 #endif
+#include "../../core/link_log.h"
 #include "../../core/platform.h"
 #include "../../core/settings.h"
 #include "../../core/units.h"
@@ -557,6 +558,23 @@ void SettingsPage::build_connection(lv_obj_t* list) {
                get().bt_mac[0] ? get().bt_mac : core::tr(core::Str::SET_ELM_SCAN));
   }
   rows::note(list, core::tr(core::Str::SET_DEMO_HINT));
+
+  rows::note(list, core::tr(core::Str::SET_BT_LOG_HINT));
+  {
+    const uint8_t n = core::link_log::count();
+    const uint8_t first = n > 6 ? static_cast<uint8_t>(n - 6) : 0;
+    for (uint8_t i = first; i < n; ++i) {
+      const core::link_log::Entry& e = core::link_log::at(i);
+      const uint32_t sec = e.at_ms / 1000;
+      char when[12];
+      snprintf(when, sizeof(when), "%lum%02lus", static_cast<unsigned long>(sec / 60),
+               static_cast<unsigned long>(sec % 60));
+      char what[48];
+      snprintf(what, sizeof(what), "%s %s",
+               core::link_log::label(static_cast<core::link_log::Code>(e.code)), e.text);
+      rows::info(list, ICON_HISTORY, when, what);
+    }
+  }
 
 #if APP_ENABLE_HA
   rows::toggle(list, ICON_HISTORY, core::tr(core::Str::SET_HA), core::tr(core::Str::SET_HA_SUB), get().ha_enabled,

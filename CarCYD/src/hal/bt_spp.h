@@ -53,6 +53,7 @@ class BtSppTransport final : public core::ElmTransport {
   BluetoothSerial bt_;
   Mode mode_ = Mode::Idle;
   char mac_[18] = {};
+  char last_name_[20] = {};  ///< adapter name from the last discovery, for the event log
   MacFoundFn mac_found_ = nullptr;
   bool bt_started_ = false;
   bool scan_running_ = false;
