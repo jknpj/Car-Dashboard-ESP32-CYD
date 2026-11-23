@@ -9,6 +9,7 @@
 
 #include <lvgl.h>
 
+#include "../core/settings.h"
 #include "../core/types.h"
 #include "fonts/ui_fonts.h"
 #include "fonts/ui_icons.h"
@@ -19,10 +20,19 @@ namespace ui {
 namespace layout {
 constexpr int32_t kScreenW = 320;
 constexpr int32_t kScreenH = 240;
-constexpr int32_t kRailW = 56;     ///< navigation rail on the driver side
+constexpr int32_t kRailW = 56;     ///< navigation rail width (an overlay drawer when hidden by settings)
 constexpr int32_t kStatusH = 28;   ///< status bar above the content
-constexpr int32_t kContentW = kScreenW - kRailW;
 constexpr int32_t kContentH = kScreenH - kStatusH;
+
+/** Left offset of the content: 0 in drawer mode, the rail width otherwise. */
+int32_t content_x();
+
+/** Usable content width for the current rail mode. */
+int32_t content_w();
+
+/** True when the navigation rail is the hidden overlay drawer. */
+bool drawer();
+
 constexpr int32_t kNavItemH = kScreenH / 5;
 
 constexpr int32_t kPad = 8;         ///< outer padding
@@ -68,6 +78,16 @@ inline const lv_font_t* large() { return &ui_font_28; }    ///< hero values
 inline const lv_font_t* speed() { return &ui_font_speed; } ///< speedometer digits
 inline const lv_font_t* icon24() { return &ui_icons_24; }
 inline const lv_font_t* icon48() { return &ui_icons_48; }
+
+/** Tile / gauge read-outs: bigger in drawer mode, where the screen is wider. */
+inline const lv_font_t* value_big() {
+  return core::settings::get().hide_nav_rail ? &ui_font_28 : &ui_font_20;
+}
+
+/** Secondary ring read-out (RPM, gear): grows with the drawer layout too. */
+inline const lv_font_t* ring_value() {
+  return core::settings::get().hide_nav_rail ? &ui_font_28 : &ui_font_16;
+}
 }  // namespace font
 
 // ---- Motion -----------------------------------------------------------------------------

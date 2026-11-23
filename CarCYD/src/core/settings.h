@@ -60,9 +60,11 @@ struct Settings {
   uint8_t dash_view;
   SignalId corner_slots[kCornerSlots];
   SignalId gauge_slots[kGaugeSlots];
+  // Layout
+  bool hide_nav_rail;  ///< overlay drawer behaviour: content full width, menu button in the status bar
 };
 
-constexpr uint16_t kSettingsVersion = 1;
+constexpr uint16_t kSettingsVersion = 2;
 
 namespace settings {
 
@@ -79,6 +81,7 @@ enum Change : uint32_t {
   kChangeLed = 1u << 8,
   kChangeDataSource = 1u << 9,
   kChangeLayout = 1u << 10,  ///< dashboard view / slots
+  kChangeNavRail = 1u << 11, ///< navigation rail as overlay drawer
   kChangeAll = 0xFFFFFFFFu,
 };
 

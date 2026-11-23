@@ -10,6 +10,7 @@
 #include "../core/settings.h"
 #include "../core/signals.h"
 #include "../core/units.h"
+#include "../core/util.h"
 #include "../core/vehicle_state.h"
 #include "components/banner.h"
 #include "components/dialog.h"
@@ -30,6 +31,7 @@ namespace {
 
 constexpr int kPageCount = static_cast<int>(PageId::Count);
 constexpr uint32_t kToastMs = 2500;
+constexpr uint32_t kRailAutoHideMs = 6000;  // drawer mode: auto-close the rail
 
 struct Shell {
   lv_display_t* display = nullptr;
@@ -44,6 +46,9 @@ struct Shell {
   uint32_t dtc_revision = 0;
   bool started = false;
   bool rebuild_pending = false;
+  bool drawer = false;               ///< navigation rail hidden behind the status-bar menu
+  bool rail_visible = true;
+  uint32_t rail_shown_ms = 0;
 };
 
 Shell g;
@@ -122,6 +127,12 @@ void tick_cb(lv_timer_t*) {
   banner::tick(now);
   refresh_alert_banner(now);
 
+  // Drawer mode: close the rail after a while so it never eats screen space.
+  if (g.drawer && g.rail_visible && core::elapsed(now, g.rail_shown_ms) >= kRailAutoHideMs) {
+    g.rail_visible = false;
+    g.rail.shown(false);
+  }
+
   const core::DtcState& dtc = core::vehicle().dtc;
   if (dtc.revision != g.dtc_revision) {
     g.dtc_revision = dtc.revision;
@@ -139,7 +150,19 @@ void back_cb(lv_event_t*) {
   if (p != nullptr) p->on_back();
 }
 
-void rail_select(PageId id) { navigate(id); }
+void rail_select(PageId id) {
+  navigate(id);
+  if (g.drawer) {  // drawer mode: close after choosing
+    g.rail_visible = false;
+    g.rail.shown(false);
+  }
+}
+
+void rail_menu_cb(lv_event_t*) {
+  g.rail_visible = true;
+  g.rail.shown(true);
+  g.rail_shown_ms = platform::millis();
+}
 
 void build_shell() {
   g.screen = lv_obj_create(nullptr);
@@ -149,11 +172,17 @@ void build_shell() {
   lv_obj_set_scrollable(g.screen, false);
 
   g.content = box(g.screen);
-  lv_obj_set_pos(g.content, layout::kRailW, layout::kStatusH);
-  lv_obj_set_size(g.content, layout::kContentW, layout::kContentH);
+  lv_obj_set_pos(g.content, layout::content_x(), layout::kStatusH);
+  lv_obj_set_size(g.content, layout::content_w(), layout::kContentH);
 
-  g.rail.create(g.screen, rail_select);
   g.status.create(g.screen, back_cb, nullptr);
+  g.rail.create(g.screen, rail_select);  // drawer mode: overlay above the content
+
+  g.drawer = core::settings::get().hide_nav_rail;
+  g.rail_visible = !g.drawer;
+  g.rail.shown(!g.drawer);
+  if (g.drawer) g.status.show_menu(rail_menu_cb);  // always reachable, never over the content
+
   g.alert_revision = core::alerts().revision() - 1;
   g.dtc_revision = core::vehicle().dtc.revision - 1;
 }
@@ -161,7 +190,7 @@ void build_shell() {
 void settings_changed(uint32_t changes, void*) {
   if (changes & core::settings::kChangeLanguage) core::i18n::set_language(core::settings::get().language);
   if (!g.started) return;
-  if (changes & (core::settings::kChangeLanguage | core::settings::kChangeTheme)) {
+  if (changes & (core::settings::kChangeLanguage | core::settings::kChangeTheme | core::settings::kChangeNavRail)) {
     request_rebuild();
     return;
   }

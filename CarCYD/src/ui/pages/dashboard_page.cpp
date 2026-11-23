@@ -16,7 +16,25 @@
 namespace ui {
 namespace {
 
-constexpr int32_t kRingDiameter = 176;
+constexpr int32_t kRingDiameter = 176;  // fixed-rail layout
+
+/** Ring size for the current layout: grows with the extra width of drawer mode. */
+int32_t ring_diameter() {
+  const int32_t height_limit = layout::kContentH - 20;  // keep the page dots clear
+  const int32_t extra = layout::content_w() - (layout::kScreenW - layout::kRailW);
+  const int32_t grown = kRingDiameter + extra / 2;
+  return grown < height_limit ? grown : height_limit;
+}
+
+/** Corner read-outs: slightly larger when the drawer frees the rail width. */
+constexpr int32_t kTileW = 66;
+constexpr int32_t kTileH = 38;
+int32_t tile_w() { return layout::drawer() ? 76 : kTileW; }
+int32_t tile_h() { return layout::drawer() ? 44 : kTileH; }
+
+/** Mini gauges: idem (still three per row in both layouts). */
+int32_t gauge_w() { return layout::drawer() ? 96 : 86; }
+int32_t gauge_h() { return layout::drawer() ? 90 : 80; }
 constexpr uint32_t kSlowUpdateMs = 200;  // corner values / mini gauges
 
 // Signal picker context (only one picker can be open).
@@ -49,14 +67,14 @@ void DashboardPage::create(lv_obj_t* parent) {
   lv_obj_set_size(views_[0], lv_pct(100), lv_pct(100));
   lv_obj_set_gesture_bubble(views_[0], true);
 
-  ring_.create(views_[0], kRingDiameter);
+  ring_.create(views_[0], ring_diameter());
   lv_obj_center(ring_.root());
 
   const lv_align_t corners[core::kCornerSlots] = {LV_ALIGN_TOP_LEFT, LV_ALIGN_TOP_RIGHT, LV_ALIGN_BOTTOM_LEFT,
                                                   LV_ALIGN_BOTTOM_RIGHT};
   for (uint8_t i = 0; i < core::kCornerSlots; ++i) {
     const bool right = (i % 2) == 1;
-    tiles_[i].create(views_[0], right);
+    tiles_[i].create(views_[0], right, tile_w(), tile_h());
     lv_obj_align(tiles_[i].root(), corners[i], right ? -6 : 6, i < 2 ? 6 : -6);
     lv_obj_set_gesture_bubble(tiles_[i].root(), true);
     lv_obj_add_event_cb(tiles_[i].root(), tile_long_press_cb, LV_EVENT_LONG_PRESSED,
@@ -73,7 +91,7 @@ void DashboardPage::create(lv_obj_t* parent) {
   lv_obj_set_flex_align(views_[1], LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
   lv_obj_set_gesture_bubble(views_[1], true);
   for (uint8_t i = 0; i < core::kGaugeSlots; ++i) {
-    gauges_[i].create(views_[1], 86, 80);
+    gauges_[i].create(views_[1], gauge_w(), gauge_h());
     lv_obj_set_gesture_bubble(gauges_[i].root(), true);
     lv_obj_add_event_cb(gauges_[i].root(), gauge_long_press_cb, LV_EVENT_LONG_PRESSED,
                         reinterpret_cast<void*>(static_cast<intptr_t>(i)));

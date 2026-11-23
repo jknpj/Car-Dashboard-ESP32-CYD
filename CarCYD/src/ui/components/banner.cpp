@@ -54,8 +54,8 @@ void clicked_cb(lv_event_t*) {
 void init() {
   g_root = lv_obj_create(lv_layer_top());
   lv_obj_remove_style_all(g_root);
-  lv_obj_set_size(g_root, layout::kContentW - 2 * layout::kPad, kHeight);
-  lv_obj_set_pos(g_root, layout::kRailW + layout::kPad, kHiddenY);
+  lv_obj_set_size(g_root, layout::content_w() - 2 * layout::kPad, kHeight);
+  lv_obj_set_pos(g_root, layout::content_x() + layout::kPad, kHiddenY);
   lv_obj_set_style_bg_color(g_root, color::card_hi(), 0);
   lv_obj_set_style_bg_opa(g_root, LV_OPA_COVER, 0);
   lv_obj_set_style_radius(g_root, layout::kRadius, 0);

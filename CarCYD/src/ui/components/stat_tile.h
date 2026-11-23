@@ -19,7 +19,7 @@ class StatTile {
   static constexpr int32_t kWidth = 66;
   static constexpr int32_t kHeight = 38;
 
-  void create(lv_obj_t* parent, bool align_right);
+  void create(lv_obj_t* parent, bool align_right, int32_t width = kWidth, int32_t height = kHeight);
   void set_signal(core::SignalId id);
   core::SignalId signal() const { return signal_; }
   void update(uint32_t now_ms);
