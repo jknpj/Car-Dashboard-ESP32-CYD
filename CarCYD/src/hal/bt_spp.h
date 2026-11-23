@@ -39,8 +39,9 @@ class BtSppTransport final : public core::ElmTransport {
  private:
   enum class Mode : uint8_t { Idle, Scanning, Connecting, Online };
 
-  void start_bt();
+  bool start_bt();
   void start_scan();
+  void stop_scan();
   void try_connect();
   void on_device(BTAdvertisedDevice* dev);
 
@@ -55,8 +56,18 @@ class BtSppTransport final : public core::ElmTransport {
   MacFoundFn mac_found_ = nullptr;
   bool bt_started_ = false;
   bool scan_running_ = false;
-  bool mac_pending_ = false;  ///< MAC discovered on the BT task, awaiting loop pickup
-  uint32_t attempt_at_ms_ = 0;
+  bool mac_pending_ = false;    ///< MAC discovered on the BT task, awaiting loop pickup
+  bool connect_now_ = false;    ///< connect on the next service() tick
+  uint32_t attempt_at_ms_ = 0;  ///< last scan/connect attempt, for the retry timers
+  uint32_t scan_started_ms_ = 0;
+  uint32_t bt_try_at_ms_ = 0;
+  uint8_t connect_failures_ = 0;
+
+  // Fallback when no adapter name matches: strongest uncategorized device.
+  char candidate_mac_[18] = {};
+  int8_t candidate_rssi_ = -128;
+  bool candidate_seen_ = false;
+  uint8_t empty_windows_ = 0;
 };
 
 }  // namespace hal

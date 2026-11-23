@@ -18,10 +18,10 @@ namespace core {
 namespace {
 
 // ---- Timing -------------------------------------------------------------------------
-constexpr uint32_t kAtRespTimeoutMs = 2500;  // ATZ / banner can be slow
-constexpr uint32_t kPidRespTimeoutMs = 700;  // one OBD request round trip
+constexpr uint32_t kAtRespTimeoutMs = 4000;  // ATZ / banner can be slow
+constexpr uint32_t kPidRespTimeoutMs = 2000; // first request also searches the protocol
 constexpr uint32_t kMinGapMs = 25;           // pause between requests
-constexpr uint8_t kMaxConsecutiveErrors = 3; // -> Error + reconnect
+constexpr uint8_t kMaxConsecutiveErrors = 6; // -> Error + reconnect
 
 // Engine speed per km/h for gears 1..6 (index 0 = neutral). Generic table used
 // by the demo simulator too; tune per vehicle if the gear estimate is off.
@@ -107,8 +107,11 @@ int parse_hex(const char* s, size_t len, uint8_t* out, int max_out) {
 
 /** True if the response is the ELM327 "no data / keep looking" chatter. */
 bool is_chatter(const char* rx, size_t len) {
+  (void)len;
   return strstr(rx, "NODATA") != nullptr || strstr(rx, "SEARCHING") != nullptr ||
-         strstr(rx, "UNABLETOCONNECT") != nullptr || strstr(rx, "?") != nullptr;
+         strstr(rx, "UNABLETOCONNECT") != nullptr || strstr(rx, "BUSINIT") != nullptr ||
+         strstr(rx, "STOPPED") != nullptr || strstr(rx, "BUFFER") != nullptr ||
+         strstr(rx, "CANERROR") != nullptr || strstr(rx, "?") != nullptr;
 }
 
 }  // namespace
