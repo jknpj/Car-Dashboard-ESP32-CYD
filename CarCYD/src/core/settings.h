@@ -68,9 +68,11 @@ struct Settings {
   char wifi_pass[65];    ///< WPA passphrase — device NVS only, never committed
   char ha_url[97];       ///< e.g. "https://home-assistant.john.it.com" (Nabu Casa or local IP)
   char ha_token[193];    ///< HA long-lived access token — device NVS only, never committed
+  // Layout
+  bool hide_nav_rail;  ///< overlay drawer behaviour: content full width, tap the edge tab for the menu
 };
 
-constexpr uint16_t kSettingsVersion = 3;
+constexpr uint16_t kSettingsVersion = 4;
 
 namespace settings {
 
@@ -88,6 +90,7 @@ enum Change : uint32_t {
   kChangeDataSource = 1u << 9,
   kChangeLayout = 1u << 10,  ///< dashboard view / slots
   kChangeHa = 1u << 11,      ///< Home Assistant / WiFi upload settings
+  kChangeNavRail = 1u << 12, ///< navigation rail as overlay drawer
   kChangeAll = 0xFFFFFFFFu,
 };
 

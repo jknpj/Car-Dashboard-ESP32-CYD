@@ -10,6 +10,7 @@
 #include "../core/settings.h"
 #include "../core/signals.h"
 #include "../core/units.h"
+#include "../core/util.h"
 #include "../core/vehicle_state.h"
 #include "components/banner.h"
 #include "components/dialog.h"
@@ -30,6 +31,7 @@ namespace {
 
 constexpr int kPageCount = static_cast<int>(PageId::Count);
 constexpr uint32_t kToastMs = 2500;
+constexpr uint32_t kRailAutoHideMs = 6000;  // drawer mode: auto-close the rail
 
 struct Shell {
   lv_display_t* display = nullptr;
@@ -45,6 +47,9 @@ struct Shell {
   bool started = false;
   bool rebuild_pending = false;
   bool calibrating = false;
+  lv_obj_t* rail_tab = nullptr;      ///< edge handle in drawer mode (null when the rail is fixed)
+  bool rail_visible = true;
+  uint32_t rail_shown_ms = 0;
 };
 
 Shell g;
@@ -127,6 +132,13 @@ void tick_cb(lv_timer_t*) {
   banner::tick(now);
   refresh_alert_banner(now);
 
+  // Drawer mode: close the rail after a while so it never eats screen space.
+  if (g.rail_tab != nullptr && g.rail_visible && core::elapsed(now, g.rail_shown_ms) >= kRailAutoHideMs) {
+    g.rail_visible = false;
+    g.rail.shown(false);
+    set_visible(g.rail_tab, true);
+  }
+
   const core::DtcState& dtc = core::vehicle().dtc;
   if (dtc.revision != g.dtc_revision) {
     g.dtc_revision = dtc.revision;
@@ -144,7 +156,39 @@ void back_cb(lv_event_t*) {
   if (p != nullptr) p->on_back();
 }
 
-void rail_select(PageId id) { navigate(id); }
+void rail_select(PageId id) {
+  navigate(id);
+  if (g.rail_tab != nullptr) {  // drawer mode: close after choosing
+    g.rail_visible = false;
+    g.rail.shown(false);
+    set_visible(g.rail_tab, true);
+  }
+}
+
+void rail_tab_cb(lv_event_t*) {
+  g.rail_visible = true;
+  g.rail.shown(true);
+  set_visible(g.rail_tab, false);
+  g.rail_shown_ms = platform::millis();
+}
+
+/** Edge handle that opens the navigation drawer (drawer mode only). */
+void build_rail_tab() {
+  g.rail_tab = lv_button_create(g.screen);
+  lv_obj_remove_style_all(g.rail_tab);
+  lv_obj_set_pos(g.rail_tab, 0, (layout::kScreenH - 72) / 2);
+  lv_obj_set_size(g.rail_tab, 22, 72);
+  lv_obj_set_style_bg_color(g.rail_tab, color::surface(), 0);
+  lv_obj_set_style_bg_opa(g.rail_tab, LV_OPA_90, 0);
+  lv_obj_set_style_radius(g.rail_tab, 6, 0);
+  lv_obj_set_style_border_side(g.rail_tab, LV_BORDER_SIDE_RIGHT, 0);
+  lv_obj_set_style_border_width(g.rail_tab, 1, 0);
+  lv_obj_set_style_border_color(g.rail_tab, color::stroke(), 0);
+  lv_obj_add_event_cb(g.rail_tab, rail_tab_cb, LV_EVENT_CLICKED, nullptr);
+  add_touch_feedback(g.rail_tab);
+  lv_obj_t* ic = icon(g.rail_tab, ICON_CHEVRON_RIGHT, font::icon24(), color::text_dim());
+  lv_obj_center(ic);
+}
 
 void build_shell() {
   g.screen = lv_obj_create(nullptr);
@@ -154,11 +198,18 @@ void build_shell() {
   lv_obj_set_scrollable(g.screen, false);
 
   g.content = box(g.screen);
-  lv_obj_set_pos(g.content, layout::kRailW, layout::kStatusH);
-  lv_obj_set_size(g.content, layout::kContentW, layout::kContentH);
+  lv_obj_set_pos(g.content, layout::content_x(), layout::kStatusH);
+  lv_obj_set_size(g.content, layout::content_w(), layout::kContentH);
 
-  g.rail.create(g.screen, rail_select);
   g.status.create(g.screen, back_cb, nullptr);
+  g.rail.create(g.screen, rail_select);  // drawer mode: overlay above the content
+
+  const bool drawer = core::settings::get().hide_nav_rail;
+  g.rail_visible = !drawer;
+  g.rail.shown(!drawer);
+  g.rail_tab = nullptr;
+  if (drawer) build_rail_tab();
+
   g.alert_revision = core::alerts().revision() - 1;
   g.dtc_revision = core::vehicle().dtc.revision - 1;
 }
@@ -166,7 +217,7 @@ void build_shell() {
 void settings_changed(uint32_t changes, void*) {
   if (changes & core::settings::kChangeLanguage) core::i18n::set_language(core::settings::get().language);
   if (!g.started) return;
-  if (changes & (core::settings::kChangeLanguage | core::settings::kChangeTheme)) {
+  if (changes & (core::settings::kChangeLanguage | core::settings::kChangeTheme | core::settings::kChangeNavRail)) {
     request_rebuild();
     return;
   }

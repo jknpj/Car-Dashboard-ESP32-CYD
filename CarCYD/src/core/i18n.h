@@ -154,6 +154,8 @@
   X(SET_NIGHT_BRIGHTNESS, "Night brightness",               "Gece parlaklığı") \
   X(SET_AMBIENT,          "Ambient light",                  "Ortam ışığı") \
   X(SET_FLIP,             "Rotate screen 180°",             "Ekranı 180° döndür") \
+  X(SET_RAIL,             "Hide navigation rail",           "Gezinme çubuğunu gizle") \
+  X(SET_RAIL_SUB,         "Full-width layout; tap the edge tab to open the menu", "Tam genişlik; menü için kenar sekmesine dokunun") \
   X(SET_ACCENT,           "Accent color",                   "Vurgu rengi") \
   /* ---- Settings: units ------------------------------------------------- */ \
   X(SET_UNIT_SPEED,       "Speed & distance",               "Hız ve mesafe") \

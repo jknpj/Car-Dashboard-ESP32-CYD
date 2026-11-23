@@ -19,10 +19,19 @@ namespace ui {
 namespace layout {
 constexpr int32_t kScreenW = 320;
 constexpr int32_t kScreenH = 240;
-constexpr int32_t kRailW = 56;     ///< navigation rail on the driver side
+constexpr int32_t kRailW = 56;     ///< navigation rail width (an overlay drawer when hidden by settings)
 constexpr int32_t kStatusH = 28;   ///< status bar above the content
-constexpr int32_t kContentW = kScreenW - kRailW;
 constexpr int32_t kContentH = kScreenH - kStatusH;
+
+/** Left offset of the content: 0 in drawer mode, the rail width otherwise. */
+int32_t content_x();
+
+/** Usable content width for the current rail mode. */
+int32_t content_w();
+
+/** True when the navigation rail is the hidden overlay drawer. */
+bool drawer();
+
 constexpr int32_t kNavItemH = kScreenH / 5;
 
 constexpr int32_t kPad = 8;         ///< outer padding

@@ -47,6 +47,14 @@ lv_color_t severity_accent(core::Severity s) { return s == core::Severity::Norma
 
 }  // namespace color
 
+namespace layout {
+
+int32_t content_x() { return core::settings::get().hide_nav_rail ? 0 : kRailW; }
+int32_t content_w() { return kScreenW - content_x(); }
+bool drawer() { return core::settings::get().hide_nav_rail; }
+
+}  // namespace layout
+
 void theme_apply(lv_display_t* display) {
   lv_theme_t* theme = lv_theme_default_init(display, color::accent(), color::info(), true, font::body());
   lv_display_set_theme(display, theme);

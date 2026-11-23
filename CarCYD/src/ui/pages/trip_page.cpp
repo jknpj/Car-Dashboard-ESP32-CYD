@@ -54,7 +54,7 @@ void TripPage::create(lv_obj_t* parent) {
   lv_obj_set_style_pad_row(grid, layout::kGap, 0);
   lv_obj_set_style_pad_column(grid, layout::kGap, 0);
 
-  const int32_t card_w = (layout::kContentW - 2 * layout::kPad - layout::kGap) / 2;
+  const int32_t card_w = (layout::content_w() - 2 * layout::kPad - layout::kGap) / 2;
   for (uint8_t i = 0; i < 6; ++i) {
     // [icon] CAPTION
     // 12.3 km

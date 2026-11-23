@@ -14,8 +14,8 @@ constexpr uint32_t kUpdatePeriodMs = 500;
 
 void StatusBar::create(lv_obj_t* parent, lv_event_cb_t on_back, void* user) {
   root_ = box(parent);
-  lv_obj_set_pos(root_, layout::kRailW, 0);
-  lv_obj_set_size(root_, layout::kContentW, layout::kStatusH);
+  lv_obj_set_pos(root_, layout::content_x(), 0);
+  lv_obj_set_size(root_, layout::content_w(), layout::kStatusH);
   lv_obj_set_style_bg_color(root_, color::surface(), 0);
   lv_obj_set_style_bg_opa(root_, LV_OPA_COVER, 0);
   lv_obj_set_style_border_side(root_, LV_BORDER_SIDE_BOTTOM, 0);

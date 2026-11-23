@@ -8,11 +8,11 @@
 
 namespace ui {
 
-void StatTile::create(lv_obj_t* parent, bool align_right) {
+void StatTile::create(lv_obj_t* parent, bool align_right, int32_t width, int32_t height) {
   const lv_flex_align_t side = align_right ? LV_FLEX_ALIGN_END : LV_FLEX_ALIGN_START;
 
   root_ = column(parent, 0);
-  lv_obj_set_size(root_, kWidth, kHeight);
+  lv_obj_set_size(root_, width, height);
   lv_obj_set_clickable(root_, true);
   lv_obj_set_flex_align(root_, LV_FLEX_ALIGN_START, side, side);
 

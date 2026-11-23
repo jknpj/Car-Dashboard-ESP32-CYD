@@ -196,6 +196,10 @@ void on_ha_toggle(lv_event_t* e) {
   edit().ha_enabled = switch_on(e);
   commit(chg::kChangeHa);
 }
+void on_rail_toggle(lv_event_t* e) {
+  edit().hide_nav_rail = switch_on(e);
+  commit(chg::kChangeNavRail);
+}
 void on_language(lv_event_t* e) {
   const auto lang = static_cast<core::Language>(selected_segment(e));
   if (get().language == lang) return;
@@ -449,6 +453,8 @@ void SettingsPage::build_display(lv_obj_t* list) {
   ambient_label_ = rows::info(list, ICON_BRIGHTNESS, core::tr(core::Str::SET_AMBIENT), "--");
 
   rows::toggle(list, ICON_ROTATE, core::tr(core::Str::SET_FLIP), nullptr, s.flip_screen, on_flip, nullptr);
+  rows::toggle(list, ICON_VIEW_DASH, core::tr(core::Str::SET_RAIL), core::tr(core::Str::SET_RAIL_SUB), s.hide_nav_rail,
+               on_rail_toggle, nullptr);
 
   // Accent colour swatches.
   lv_obj_t* r = card(list);

@@ -20,10 +20,14 @@ class NavRail {
   /** Small dot on an item (e.g. check engine light on the Diagnostics item). */
   void set_badge(PageId page, bool visible, lv_color_t color);
 
+  /** Show/hide the rail (drawer mode hides it until the edge tab is tapped). */
+  void shown(bool on);
+
  private:
   static void clicked_cb(lv_event_t* e);
 
   static constexpr int kItems = static_cast<int>(PageId::Count);
+  lv_obj_t* rail_ = nullptr;
   lv_obj_t* items_[kItems] = {};
   lv_obj_t* icons_[kItems] = {};
   lv_obj_t* markers_[kItems] = {};
