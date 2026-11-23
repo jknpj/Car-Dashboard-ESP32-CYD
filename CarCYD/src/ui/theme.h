@@ -9,6 +9,7 @@
 
 #include <lvgl.h>
 
+#include "../core/settings.h"
 #include "../core/types.h"
 #include "fonts/ui_fonts.h"
 #include "fonts/ui_icons.h"
@@ -77,6 +78,16 @@ inline const lv_font_t* large() { return &ui_font_28; }    ///< hero values
 inline const lv_font_t* speed() { return &ui_font_speed; } ///< speedometer digits
 inline const lv_font_t* icon24() { return &ui_icons_24; }
 inline const lv_font_t* icon48() { return &ui_icons_48; }
+
+/** Tile / gauge read-outs: bigger in drawer mode, where the screen is wider. */
+inline const lv_font_t* value_big() {
+  return core::settings::get().hide_nav_rail ? &ui_font_28 : &ui_font_20;
+}
+
+/** Secondary ring read-out (RPM, gear): grows with the drawer layout too. */
+inline const lv_font_t* ring_value() {
+  return core::settings::get().hide_nav_rail ? &ui_font_28 : &ui_font_16;
+}
 }  // namespace font
 
 // ---- Motion -----------------------------------------------------------------------------

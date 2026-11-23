@@ -113,11 +113,11 @@ void RingGauge::create(lv_obj_t* parent, int32_t diameter) {
   lv_obj_set_style_radius(gear_box_, 5, 0);
   lv_obj_set_style_border_width(gear_box_, 1, 0);
   lv_obj_set_style_bg_opa(gear_box_, LV_OPA_COVER, 0);
-  gear_ = label(gear_box_, font::title(), color::accent(), "");
+  gear_ = label(gear_box_, font::ring_value(), color::accent(), "");
   lv_obj_center(gear_);
   set_visible(gear_box_, false);
 
-  rpm_value_ = label(bottom, font::title(), color::text(), "--");
+  rpm_value_ = label(bottom, font::ring_value(), color::text(), "--");
   label(bottom, font::caption(), color::text_dim(), "rpm");
 
   configure(rpm_max_, redline_rpm_, shift_rpm_, shift_light_);

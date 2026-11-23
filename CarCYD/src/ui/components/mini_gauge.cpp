@@ -37,7 +37,7 @@ void MiniGauge::create(lv_obj_t* parent, int32_t width, int32_t height) {
   lv_obj_set_style_arc_color(arc_, color::accent(), LV_PART_INDICATOR);
   lv_obj_set_style_arc_rounded(arc_, true, LV_PART_INDICATOR);
 
-  value_ = label(arc_, font::value(), color::text(), kNoValue);
+  value_ = label(arc_, font::value_big(), color::text(), kNoValue);
   lv_obj_align(value_, LV_ALIGN_CENTER, 0, -6);
   unit_ = label(arc_, font::caption(), color::text_dim(), "");
   lv_obj_align(unit_, LV_ALIGN_CENTER, 0, 12);
