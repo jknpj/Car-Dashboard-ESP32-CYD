@@ -13,8 +13,10 @@
 
 namespace core {
 
-/** A value is considered stale (shown as "--") when not refreshed for this long. */
-constexpr uint32_t kSignalStaleMs = 2500;
+/** A value is considered stale (shown as "--") when not refreshed for this long.
+ *  Sized for a full ELM327 sweep: a slow clone takes ~4 s to repeat a PID that
+ *  is polled once per cycle, so a shorter window made those values flicker. */
+constexpr uint32_t kSignalStaleMs = 6000;
 
 struct SignalValue {
   float value = 0.0f;

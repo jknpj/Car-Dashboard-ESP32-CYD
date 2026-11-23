@@ -248,8 +248,11 @@ void ElmLink::on_response(VehicleState& state, uint32_t now_ms) {
           state.dtc.mil_known = true;
           state.dtc.revision++;
         }
-      } else if (n >= 4 && data[0] == 0x41 && data[1] == def.pid) {
-        uint32_t value = (static_cast<uint32_t>(data[2]) << 8) | data[3];
+      } else if (n >= 3 && data[0] == 0x41 && data[1] == def.pid) {
+        // 1-byte PIDs (speed, temperatures, load...) answer with 3 bytes total;
+        // 2-byte PIDs (RPM, voltage, MAF...) with 4. Build the value accordingly.
+        uint32_t value = data[2];
+        if (n >= 4) value = (value << 8) | data[3];
         if (n >= 5) value = (value << 8) | data[4];
         if (n >= 6) value = (value << 8) | data[5];
         state.set(def.signal, def.convert(value, n - 2), now_ms);
