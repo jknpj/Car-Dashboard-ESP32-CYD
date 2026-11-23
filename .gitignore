@@ -19,3 +19,6 @@ Thumbs.db
 # Python / Node
 __pycache__/
 node_modules/
+
+# Graphify code graph (local artifact)
+graphify-out/
