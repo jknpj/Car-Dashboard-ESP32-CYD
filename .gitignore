@@ -1,5 +1,7 @@
 # Build output
 build/
+.pio/
+graphify-out/
 tools/simulator/build/
 *.bin
 *.elf
@@ -18,3 +20,6 @@ Thumbs.db
 # Python / Node
 __pycache__/
 node_modules/
+
+# Graphify code graph (local artifact)
+graphify-out/

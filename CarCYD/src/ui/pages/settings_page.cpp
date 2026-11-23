@@ -4,6 +4,7 @@
 
 #include "../../config/app_config.h"
 #include "../../core/i18n.h"
+#include "../../core/ha_export.h"
 #include "../../core/platform.h"
 #include "../../core/settings.h"
 #include "../../core/units.h"
@@ -191,6 +192,10 @@ void on_data_source(lv_event_t* e) {
   edit().demo_mode = selected_segment(e) == 0;
   commit(chg::kChangeDataSource);
 }
+void on_ha_toggle(lv_event_t* e) {
+  edit().ha_enabled = switch_on(e);
+  commit(chg::kChangeHa);
+}
 void on_language(lv_event_t* e) {
   const auto lang = static_cast<core::Language>(selected_segment(e));
   if (get().language == lang) return;
@@ -357,6 +362,7 @@ void SettingsPage::close_section() {
   }
   ambient_label_ = night_row_ = day_title_ = brightness_value_ = night_value_ = nullptr;
   volume_value_ = link_status_ = memory_label_ = uptime_label_ = nullptr;
+  ha_status_ = nullptr;
   for (auto& swatch : accent_swatches_) swatch = nullptr;
   section_ = Section::None;
 }
@@ -388,6 +394,22 @@ void SettingsPage::update_live_values(uint32_t now_ms) {
     const core::LinkState state = core::vehicle().link_state;
     set_text(link_status_, link_state_text(state));
     set_text_color(link_status_, state == core::LinkState::Connected ? color::ok() : color::text_dim());
+  }
+  if (ha_status_ != nullptr) {
+    const core::HaExport* ha = core::ha::active();
+    if (!get().ha_enabled) {
+      set_text(ha_status_, core::tr(core::Str::HA_DISABLED));
+      set_text_color(ha_status_, color::text_dim());
+    } else if (ha != nullptr && ha->publishing()) {
+      set_text(ha_status_, core::tr(core::Str::HA_UPLOADING));
+      set_text_color(ha_status_, color::ok());
+    } else if (ha != nullptr && ha->online()) {
+      set_text(ha_status_, core::tr(core::Str::LINK_CONNECTED));
+      set_text_color(ha_status_, color::ok());
+    } else {
+      set_text(ha_status_, core::tr(core::Str::LINK_CONNECTING));
+      set_text_color(ha_status_, color::text_dim());
+    }
   }
   if (memory_label_ != nullptr) {
     platform::SystemInfo info;
@@ -519,6 +541,11 @@ void SettingsPage::build_connection(lv_obj_t* list) {
                   on_data_source, nullptr);
   link_status_ = rows::info(list, ICON_LINK, core::tr(core::Str::SET_LINK_STATUS), "");
   rows::note(list, core::tr(core::Str::SET_DEMO_HINT));
+
+  rows::toggle(list, ICON_HISTORY, core::tr(core::Str::SET_HA), core::tr(core::Str::SET_HA_SUB), get().ha_enabled,
+               on_ha_toggle, nullptr);
+  ha_status_ = rows::info(list, ICON_LINK_OFF, core::tr(core::Str::SET_HA_STATUS), "");
+  rows::note(list, core::tr(core::Str::SET_HA_HINT));
 }
 
 void SettingsPage::build_system(lv_obj_t* list) {

@@ -182,6 +182,12 @@
   X(SET_DATA_SOURCE,      "Data source",                    "Veri kaynağı") \
   X(SET_SRC_DEMO,         "Demo",                           "Demo") \
   X(SET_SRC_LINK,         "ESP32 link",                     "ESP32 bağlantısı") \
+  X(SET_HA,               "Home Assistant",                 "Home Assistant") \
+  X(SET_HA_SUB,           "Upload fuel, tyres, battery and alerts over Wi-Fi", "Yakıt, lastik, akü ve uyarıları Wi-Fi ile yükle") \
+  X(SET_HA_STATUS,        "HA status",                      "HA durumu") \
+  X(SET_HA_HINT,          "Configure Wi-Fi and the HA token over USB serial: setwifi, setha, ha, showha", "Wi-Fi ve HA tokenı USB seri ile ayarlanır: setwifi, setha, ha, showha") \
+  X(HA_DISABLED,          "Disabled",                       "Devre dışı") \
+  X(HA_UPLOADING,         "Uploading…",                     "Yükleniyor…") \
   X(SET_LINK_STATUS,      "Status",                         "Durum") \
   X(SET_LINK_INTERFACE,   "Interface",                      "Arayüz") \
   X(SET_DEMO_HINT,        "Demo mode simulates a driving car. Select ESP32 link to use real vehicle data.", "Demo modu sürüşü simüle eder. Gerçek araç verisi için ESP32 bağlantısını seçin.") \
