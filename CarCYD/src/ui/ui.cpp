@@ -44,6 +44,7 @@ struct Shell {
   uint32_t dtc_revision = 0;
   bool started = false;
   bool rebuild_pending = false;
+  bool calibrating = false;
 };
 
 Shell g;
@@ -78,6 +79,10 @@ void alert_tapped(void* user) {
 }
 
 void refresh_alert_banner(uint32_t now_ms) {
+  if (g.calibrating) {  // never cover the calibration targets
+    if (banner::visible()) banner::hide();
+    return;
+  }
   if (banner::visible() && banner::owner() < 0) return;  // let a toast finish first
 
   core::AlertManager& alerts = core::alerts();
@@ -154,6 +159,7 @@ void build_shell() {
 
   g.rail.create(g.screen, rail_select);
   g.status.create(g.screen, back_cb, nullptr);
+
   g.alert_revision = core::alerts().revision() - 1;
   g.dtc_revision = core::vehicle().dtc.revision - 1;
 }
@@ -197,6 +203,7 @@ void rebuild_async(void*) {
 }
 
 void calibration_done() {
+  g.calibrating = false;
   lv_screen_load(g.screen);
   g.pages[static_cast<int>(g.current)]->on_show();
 }
@@ -223,6 +230,8 @@ void start(bool run_touch_calibration) {
   g.started = true;
 
   if (run_touch_calibration) {
+    g.calibrating = true;
+    banner::hide();
     calibration::start(calibration_done);
     lv_obj_delete(splash);
   } else {
@@ -250,7 +259,12 @@ void navigate(PageId id) {
 
 PageId current_page() { return g.current; }
 
-void open_touch_calibration() { calibration::start(calibration_done); }
+void open_touch_calibration() {
+  g.calibrating = true;
+  calibration::start(calibration_done);
+}
+
+bool calibrating() { return g.calibrating; }
 
 void request_rebuild() {
   if (g.rebuild_pending) return;

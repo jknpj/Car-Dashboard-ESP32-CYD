@@ -44,6 +44,9 @@ PageId current_page();
 /** Opens the touch calibration screen; returns to the current page afterwards. */
 void open_touch_calibration();
 
+/** True while the touch calibration screen is active (alerts are suppressed). */
+bool calibrating();
+
 /** Rebuilds all widgets (language / accent change). Deferred to a safe point. */
 void request_rebuild();
 

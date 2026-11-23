@@ -27,3 +27,6 @@
 
 // ---- Display ---------------------------------------------------------------------------------
 #define APP_DRAW_BUFFER_LINES 40     // 2 x (320 x 40 x 2 B) = 50 KB DMA buffers
+
+// ---- ELM327 Bluetooth (SPP) -----------------------------------------------------------------
+#define ELM_BT_PIN "1234"  // legacy pairing PIN of the ELM327 clone ("1234" or "0000")
