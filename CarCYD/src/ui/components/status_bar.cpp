@@ -12,6 +12,15 @@ namespace {
 constexpr uint32_t kUpdatePeriodMs = 500;
 }  // namespace
 
+void StatusBar::show_menu(lv_event_cb_t cb) {
+  if (menu_ == nullptr) {
+    menu_ = icon_button(root_, ICON_VIEW_GRID, 26, cb, nullptr);
+    lv_obj_set_ext_click_area(menu_, 10);
+    lv_obj_move_to_index(menu_, 0);
+  }
+  set_visible(menu_, true);
+}
+
 void StatusBar::create(lv_obj_t* parent, lv_event_cb_t on_back, void* user) {
   root_ = box(parent);
   lv_obj_set_pos(root_, layout::content_x(), 0);

@@ -47,7 +47,7 @@ struct Shell {
   bool started = false;
   bool rebuild_pending = false;
   bool calibrating = false;
-  lv_obj_t* rail_tab = nullptr;      ///< edge handle in drawer mode (null when the rail is fixed)
+  bool drawer = false;               ///< navigation rail hidden behind the status-bar menu
   bool rail_visible = true;
   uint32_t rail_shown_ms = 0;
 };
@@ -133,10 +133,9 @@ void tick_cb(lv_timer_t*) {
   refresh_alert_banner(now);
 
   // Drawer mode: close the rail after a while so it never eats screen space.
-  if (g.rail_tab != nullptr && g.rail_visible && core::elapsed(now, g.rail_shown_ms) >= kRailAutoHideMs) {
+  if (g.drawer && g.rail_visible && core::elapsed(now, g.rail_shown_ms) >= kRailAutoHideMs) {
     g.rail_visible = false;
     g.rail.shown(false);
-    set_visible(g.rail_tab, true);
   }
 
   const core::DtcState& dtc = core::vehicle().dtc;
@@ -158,36 +157,16 @@ void back_cb(lv_event_t*) {
 
 void rail_select(PageId id) {
   navigate(id);
-  if (g.rail_tab != nullptr) {  // drawer mode: close after choosing
+  if (g.drawer) {  // drawer mode: close after choosing
     g.rail_visible = false;
     g.rail.shown(false);
-    set_visible(g.rail_tab, true);
   }
 }
 
-void rail_tab_cb(lv_event_t*) {
+void rail_menu_cb(lv_event_t*) {
   g.rail_visible = true;
   g.rail.shown(true);
-  set_visible(g.rail_tab, false);
   g.rail_shown_ms = platform::millis();
-}
-
-/** Edge handle that opens the navigation drawer (drawer mode only). */
-void build_rail_tab() {
-  g.rail_tab = lv_button_create(g.screen);
-  lv_obj_remove_style_all(g.rail_tab);
-  lv_obj_set_pos(g.rail_tab, 0, (layout::kScreenH - 72) / 2);
-  lv_obj_set_size(g.rail_tab, 22, 72);
-  lv_obj_set_style_bg_color(g.rail_tab, color::surface(), 0);
-  lv_obj_set_style_bg_opa(g.rail_tab, LV_OPA_90, 0);
-  lv_obj_set_style_radius(g.rail_tab, 6, 0);
-  lv_obj_set_style_border_side(g.rail_tab, LV_BORDER_SIDE_RIGHT, 0);
-  lv_obj_set_style_border_width(g.rail_tab, 1, 0);
-  lv_obj_set_style_border_color(g.rail_tab, color::stroke(), 0);
-  lv_obj_add_event_cb(g.rail_tab, rail_tab_cb, LV_EVENT_CLICKED, nullptr);
-  add_touch_feedback(g.rail_tab);
-  lv_obj_t* ic = icon(g.rail_tab, ICON_CHEVRON_RIGHT, font::icon24(), color::text_dim());
-  lv_obj_center(ic);
 }
 
 void build_shell() {
@@ -204,11 +183,10 @@ void build_shell() {
   g.status.create(g.screen, back_cb, nullptr);
   g.rail.create(g.screen, rail_select);  // drawer mode: overlay above the content
 
-  const bool drawer = core::settings::get().hide_nav_rail;
-  g.rail_visible = !drawer;
-  g.rail.shown(!drawer);
-  g.rail_tab = nullptr;
-  if (drawer) build_rail_tab();
+  g.drawer = core::settings::get().hide_nav_rail;
+  g.rail_visible = !g.drawer;
+  g.rail.shown(!g.drawer);
+  if (g.drawer) g.status.show_menu(rail_menu_cb);  // always reachable, never over the content
 
   g.alert_revision = core::alerts().revision() - 1;
   g.dtc_revision = core::vehicle().dtc.revision - 1;

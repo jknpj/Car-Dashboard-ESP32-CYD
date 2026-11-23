@@ -17,7 +17,11 @@ class StatusBar {
   void show_back(bool show);
   void update(uint32_t now_ms);
 
+  /** Drawer mode: show a menu button at the far left that opens the nav rail. */
+  void show_menu(lv_event_cb_t cb);
+
  private:
+  lv_obj_t* menu_ = nullptr;
   lv_obj_t* root_ = nullptr;
   lv_obj_t* back_ = nullptr;
   lv_obj_t* title_ = nullptr;
