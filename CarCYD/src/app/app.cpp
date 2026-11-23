@@ -8,6 +8,7 @@
 #include "../core/alerts.h"
 #include "../core/data_link.h"
 #include "../core/elm_link.h"
+#include "../core/ha_export.h"
 #include "../core/i18n.h"
 #include "../core/log.h"
 #include "../core/persist.h"
@@ -20,6 +21,7 @@
 #include "../hal/backlight.h"
 #include "../hal/bt_spp.h"
 #include "../hal/button.h"
+#include "../hal/ha_http.h"
 #include "../hal/buzzer.h"
 #include "../hal/display.h"
 #include "../hal/light_sensor.h"
@@ -45,6 +47,8 @@ core::SimLink g_sim_link;
 core::NullLink g_null_link;
 hal::BtSppTransport g_bt_spp;
 core::ElmLink g_elm_link(g_bt_spp);
+hal::HaHttp g_ha_http;
+core::HaExport g_ha_export(g_ha_http);
 
 uint32_t g_last_backlight_ms = 0;
 uint32_t g_last_trip_save_ms = 0;
@@ -76,6 +80,81 @@ void on_bt_mac_found(const char* mac) {
   snprintf(s.bt_mac, sizeof(s.bt_mac), "%s", mac);
   core::settings::commit(core::settings::kChangeDataSource);  // persists, harmless while active
   LOG_I("APP", "adapter MAC stored: %s", mac);
+}
+
+void apply_ha_settings() {
+  const core::Settings& s = core::settings::get();
+  const bool enabled = s.ha_enabled && s.ha_url[0] != '\0' && s.ha_token[0] != '\0' && s.wifi_ssid[0] != '\0';
+  g_ha_http.configure(s.ha_url, s.ha_token, s.wifi_ssid, s.wifi_pass, enabled);
+  g_ha_export.set_enabled(enabled);
+  LOG_I("APP", "HA upload %s", enabled ? "enabled" : "disabled");
+}
+
+void update_ha(uint32_t now_ms) {
+  g_ha_http.service();
+  g_ha_export.poll(core::vehicle(), core::alerts(), core::trip().data(), now_ms);
+}
+
+// ---- Serial configuration CLI -----------------------------------------------------------
+// The CYD has no on-screen keyboard, so Wi-Fi and the HA token are configured
+// over the USB serial console at 115200 baud:
+//   setwifi <ssid>|<passphrase>    setha <https-url>|<token>    ha on|off    showha
+// showha never prints secrets (passphrase/token are masked).
+char g_cli_buf[260];
+size_t g_cli_len = 0;
+
+void cli_apply_line(const char* line) {
+  core::Settings& s = core::settings::edit();
+  if (strncmp(line, "setwifi ", 8) == 0) {
+    const char* sep = strchr(line + 8, '|');
+    if (sep == nullptr || sep - (line + 8) == 0) {
+      Serial.println("usage: setwifi <ssid>|<passphrase>");
+      return;
+    }
+    snprintf(s.wifi_ssid, sizeof(s.wifi_ssid), "%.*s", static_cast<int>(sep - (line + 8)), line + 8);
+    snprintf(s.wifi_pass, sizeof(s.wifi_pass), "%s", sep + 1);
+    core::settings::commit(core::settings::kChangeHa);
+    Serial.println("wifi set");
+  } else if (strncmp(line, "setha ", 6) == 0) {
+    const char* sep = strchr(line + 6, '|');
+    if (sep == nullptr || sep - (line + 6) == 0) {
+      Serial.println("usage: setha <https://ha-host>|<token>");
+      return;
+    }
+    snprintf(s.ha_url, sizeof(s.ha_url), "%.*s", static_cast<int>(sep - (line + 6)), line + 6);
+    snprintf(s.ha_token, sizeof(s.ha_token), "%s", sep + 1);
+    core::settings::commit(core::settings::kChangeHa);
+    Serial.println("ha set");
+  } else if (strncmp(line, "ha ", 3) == 0) {
+    s.ha_enabled = strcmp(line + 3, "on") == 0;
+    core::settings::commit(core::settings::kChangeHa);
+    Serial.println(s.ha_enabled ? "ha on" : "ha off");
+  } else if (strcmp(line, "showha") == 0) {
+    const core::Settings& cur = core::settings::get();
+    Serial.printf("ha: %s\n", cur.ha_enabled ? "on" : "off");
+    Serial.printf("wifi: %s\n", cur.wifi_ssid);
+    Serial.printf("url: %s\n", cur.ha_url);
+    Serial.printf("token: %s\n", cur.ha_token[0] != '\0' ? "(set)" : "(empty)");
+    Serial.printf("online: %s\n", g_ha_http.online() ? "yes" : "no");
+  } else {
+    Serial.println("commands: setwifi <ssid>|<pass> · setha <url>|<token> · ha on|off · showha");
+  }
+}
+
+void serial_cli() {
+  while (Serial.available() > 0) {
+    const int c = Serial.read();
+    if (c < 0) break;
+    if (c == '\n' || c == '\r') {
+      if (g_cli_len > 0) {
+        g_cli_buf[g_cli_len] = '\0';
+        cli_apply_line(g_cli_buf);
+        g_cli_len = 0;
+      }
+    } else if (g_cli_len + 1 < sizeof(g_cli_buf)) {
+      g_cli_buf[g_cli_len++] = static_cast<char>(c);
+    }
+  }
 }
 
 uint8_t target_brightness() {
@@ -179,6 +258,7 @@ void on_settings_changed(uint32_t changes, void*) {
   if (changes & core::settings::kChangeOrientation) hal::display::set_flipped(s.flip_screen);
   if (changes & core::settings::kChangeSound) hal::buzzer::set_volume(s.volume);
   if (changes & core::settings::kChangeDataSource) select_data_source(millis());
+  if (changes & core::settings::kChangeHa) apply_ha_settings();
 }
 
 /** Renders the splash while the start-up continues. */
@@ -214,6 +294,8 @@ void setup() {
   const core::Settings& s = core::settings::get();
   g_bt_spp.set_mac(s.bt_mac);
   g_bt_spp.set_mac_found_callback(on_bt_mac_found);
+  core::ha::set_active(&g_ha_export);
+  apply_ha_settings();
 
   // ---- Graphics -----------------------------------------------------------------------
   lv_init();
@@ -279,6 +361,9 @@ void loop() {
     g_last_trip_save_ms = now;
     save_trip(false);
   }
+
+  serial_cli();
+  update_ha(now);
 
   const uint32_t idle_ms = lv_timer_handler();
   delay(idle_ms > 5 ? 5 : (idle_ms == 0 ? 1 : idle_ms));

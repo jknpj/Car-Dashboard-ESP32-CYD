@@ -1,0 +1,139 @@
+# CarCYD → Home Assistant package
+#
+# Drop this file into <config>/packages/ (or paste into configuration.yaml)
+# and restart Home Assistant. The CYD firmware posts entity states over the
+# REST API (/api/states/...), so the helpers below must exist exactly with
+# these ids — the firmware sends:
+#
+#   input_number.carcyd_fuel_level    input_number.carcyd_dtc_count
+#   input_number.carcyd_voltage       input_number.carcyd_trip_km
+#   input_number.carcyd_coolant_temp  input_number.carcyd_fuel_litres
+#   input_number.carcyd_intake_temp
+#   input_boolean.carcyd_mil          input_boolean.carcyd_low_voltage
+#   input_boolean.carcyd_low_fuel     input_boolean.carcyd_coolant_high
+#   input_boolean.carcyd_link_lost
+#
+# The input_* helpers receive the raw values; the template sensors below add
+# units, device classes and long-term statistics so the History/Energy UI can
+# chart them. Automations (notifications) trigger on the boolean helpers.
+
+input_number:
+  carcyd_fuel_level:
+    name: "Car fuel level"
+    min: 0
+    max: 100
+    step: 0.1
+    unit_of_measurement: "%"
+    icon: mdi:gas-station
+  carcyd_voltage:
+    name: "Car battery voltage"
+    min: 0
+    max: 20
+    step: 0.01
+    unit_of_measurement: "V"
+    icon: mdi:car-battery
+  carcyd_coolant_temp:
+    name: "Car coolant temperature"
+    min: -40
+    max: 150
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:coolant-temperature
+  carcyd_intake_temp:
+    name: "Car intake temperature"
+    min: -40
+    max: 120
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+  carcyd_dtc_count:
+    name: "Car DTC count"
+    min: 0
+    max: 250
+    step: 1
+    icon: mdi:car-wrench
+  carcyd_trip_km:
+    name: "Car trip distance"
+    min: 0
+    max: 100000
+    step: 0.1
+    unit_of_measurement: "km"
+    icon: mdi:map-marker-distance
+  carcyd_fuel_litres:
+    name: "Car trip fuel used"
+    min: 0
+    max: 10000
+    step: 0.01
+    unit_of_measurement: "L"
+    icon: mdi:fuel
+
+input_boolean:
+  carcyd_mil:
+    name: "Car check engine (MIL)"
+    icon: mdi:engine
+  carcyd_low_fuel:
+    name: "Car low fuel"
+    icon: mdi:gas-station-off
+  carcyd_low_voltage:
+    name: "Car low battery voltage"
+    icon: mdi:battery-alert
+  carcyd_coolant_high:
+    name: "Car coolant too hot"
+    icon: mdi:thermometer-alert
+  carcyd_link_lost:
+    name: "Car OBD link lost"
+    icon: mdi:lan-disconnect
+
+# Long-term statistics (state_class) live on sensors; map the helpers.
+sensor:
+  - platform: template
+    sensors:
+      carcyd_fuel_level_stats:
+        friendly_name: "Car fuel level"
+        unit_of_measurement: "%"
+        device_class: fuel
+        state_class: measurement
+        state: "{{ states('input_number.carcyd_fuel_level') }}"
+      carcyd_voltage_stats:
+        friendly_name: "Car battery voltage"
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        state: "{{ states('input_number.carcyd_voltage') }}"
+      carcyd_coolant_temp_stats:
+        friendly_name: "Car coolant temperature"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ states('input_number.carcyd_coolant_temp') }}"
+      carcyd_intake_temp_stats:
+        friendly_name: "Car intake temperature"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ states('input_number.carcyd_intake_temp') }}"
+      carcyd_trip_km_stats:
+        friendly_name: "Car trip distance"
+        unit_of_measurement: "km"
+        device_class: distance
+        state_class: total_increasing
+        state: "{{ states('input_number.carcyd_trip_km') }}"
+      carcyd_fuel_litres_stats:
+        friendly_name: "Car trip fuel used"
+        unit_of_measurement: "L"
+        device_class: volume
+        state_class: total_increasing
+        state: "{{ states('input_number.carcyd_fuel_litres') }}"
+
+# Example: push notification when the MIL turns on.
+# automation:
+#   - alias: "CarCYD check engine"
+#     triggers:
+#       - trigger: state
+#         entity_id: input_boolean.carcyd_mil
+#         to: "on"
+#     actions:
+#       - action: notify.mobile_app_seu_celular
+#         data:
+#           title: "Check engine ligou"
+#           message: "O CarCYD acaba de reportar a luz de injeção acesa."

@@ -62,9 +62,15 @@ struct Settings {
   SignalId gauge_slots[kGaugeSlots];
   // ELM327 over Bluetooth Classic (SPP)
   char bt_mac[18];  ///< "AA:BB:CC:DD:EE:FF" of the adapter; empty = scan on connect
+  // Home Assistant upload (WiFi + HTTPS REST, see core/ha_export.h)
+  bool ha_enabled;
+  char wifi_ssid[33];    ///< SSID of the network the CYD joins (home WiFi or phone hotspot)
+  char wifi_pass[65];    ///< WPA passphrase — device NVS only, never committed
+  char ha_url[97];       ///< e.g. "https://home-assistant.john.it.com" (Nabu Casa or local IP)
+  char ha_token[193];    ///< HA long-lived access token — device NVS only, never committed
 };
 
-constexpr uint16_t kSettingsVersion = 2;
+constexpr uint16_t kSettingsVersion = 3;
 
 namespace settings {
 
@@ -81,6 +87,7 @@ enum Change : uint32_t {
   kChangeLed = 1u << 8,
   kChangeDataSource = 1u << 9,
   kChangeLayout = 1u << 10,  ///< dashboard view / slots
+  kChangeHa = 1u << 11,      ///< Home Assistant / WiFi upload settings
   kChangeAll = 0xFFFFFFFFu,
 };
 
