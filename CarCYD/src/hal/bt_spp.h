@@ -60,6 +60,7 @@ class BtSppTransport final : public core::ElmTransport {
   bool mac_pending_ = false;    ///< MAC discovered on the BT task, awaiting loop pickup
   bool connect_now_ = false;    ///< connect on the next service() tick
   uint32_t attempt_at_ms_ = 0;  ///< last scan/connect attempt, for the retry timers
+  uint32_t bt_ready_ms_ = 0;    ///< when the stack came up: let the controller settle before connecting
   uint32_t scan_started_ms_ = 0;
   uint32_t bt_try_at_ms_ = 0;
   uint8_t connect_failures_ = 0;

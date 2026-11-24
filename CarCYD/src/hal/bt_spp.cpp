@@ -24,6 +24,7 @@ constexpr uint32_t kScanIntervalMs = 3000;    // pause between discovery windows
 constexpr uint32_t kScanWindowMs = 8000;      // one inquiry, in ms (BTAdvertisedDeviceCb takes ms)
 constexpr uint32_t kScanGraceMs = 1500;       // let the last inquiry results arrive
 constexpr uint32_t kConnectTimeoutMs = 15000; // retry a failed connect after this
+constexpr uint32_t kBtSettleMs = 1500;         // let the controller settle before the first connect
 constexpr uint8_t kFallbackWindows = 2;       // unscanned windows before trying a generic candidate
 constexpr uint8_t kMaxConnectFailures = 2;    // forget the MAC and rescan after this many
 
@@ -60,6 +61,22 @@ bool is_generic_class(uint32_t cod) {
   return major == 0x00 || major == 0x1F;
 }
 
+/** A unicast MAC we can actually connect to. Rejects placeholders and garbage. */
+bool usable_mac(const char* mac) {
+  if (mac == nullptr) return false;
+  unsigned int v[6];
+  if (sscanf(mac, "%x:%x:%x:%x:%x:%x", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5]) != 6) return false;
+  bool all_zero = true;
+  bool all_ff = true;
+  for (int i = 0; i < 6; ++i) {
+    all_zero = all_zero && v[i] == 0;
+    all_ff = all_ff && v[i] == 0xFF;
+  }
+  if (all_zero || all_ff) return false;
+  if ((v[0] & 0x01) != 0) return false;  // multicast bit: never a peer address
+  return true;
+}
+
 /** Context for the event log: the adapter name, or the tail of the MAC. */
 const char* short_ctx(const char* name, const char* mac) {
   if (name != nullptr && name[0] != '\0') return name;
@@ -73,8 +90,13 @@ const char* short_ctx(const char* name, const char* mac) {
 BtSppTransport* BtSppTransport::g_this = nullptr;
 
 void BtSppTransport::set_mac(const char* mac) {
-  if (mac == nullptr) mac_[0] = '\0';
-  else {
+  if (mac == nullptr || !usable_mac(mac)) {
+    if (mac != nullptr && mac[0] != '\0') {
+      LOG_W("BT", "ignoring unusable adapter MAC '%s', scanning instead", mac);
+      core::link_log::add(core::link_log::Code::Forget, millis(), "bad MAC");
+    }
+    mac_[0] = '\0';
+  } else {
     strncpy(mac_, mac, sizeof(mac_) - 1);
     mac_[sizeof(mac_) - 1] = '\0';
   }
@@ -107,6 +129,7 @@ bool BtSppTransport::start_bt() {
   // setPin() talks to the GAP layer, so it only works once the stack is up.
   bt_.setPin(ELM_BT_PIN, static_cast<uint8_t>(strlen(ELM_BT_PIN)));
   core::link_log::add(core::link_log::Code::BtStart, now);
+  bt_ready_ms_ = millis();
   LOG_I("BT", "SPP started as '%s'", kLocalName);
   return true;
 }
@@ -257,7 +280,8 @@ void BtSppTransport::service() {
         candidate_seen_ = false;
         core::link_log::add(core::link_log::Code::ConnectOk, now, short_ctx(last_name_, mac_));
         LOG_I("BT", "connected to %s", mac_);
-      } else if (connect_now_ || core::elapsed(now, attempt_at_ms_) >= kConnectTimeoutMs) {
+      } else if ((connect_now_ || core::elapsed(now, attempt_at_ms_) >= kConnectTimeoutMs) &&
+                 core::elapsed(now, bt_ready_ms_) >= kBtSettleMs) {
         connect_now_ = false;
         attempt_at_ms_ = now;
         try_connect();
